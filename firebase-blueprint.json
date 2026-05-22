@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "Concept": {
+      "title": "SavedDesignConcept",
+      "description": "A saved interior design and layout concept configuration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the user who owns this concept."
+        },
+        "title": {
+          "type": "string",
+          "description": "The custom title chosen for this design iteration."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date-time ISO string representing when this concept was modified or created."
+        },
+        "userInput": {
+          "type": "object",
+          "description": "The comprehensive user onboarding inputs including budget, lifestyle priorities and style preferences."
+        },
+        "aiResponse": {
+          "type": "object",
+          "description": "The custom spatial layouts, 3D room placements, material suitability index, and compliance checks."
+        },
+        "conceptNotes": {
+          "type": "string",
+          "description": "System or user notes about this layout iteration."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "createdAt",
+        "userInput",
+        "aiResponse"
+      ]
+    }
+  },
+  "firestore": {
+    "concepts/{conceptId}": {
+      "schema": "Concept",
+      "description": "Store individual design layouts, budget matrices, and clearance guidelines per user."
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "My Home Renovation Space Optimizer & Designer",
+  "description": "Singapore space planner and interior design suite that optimizes furniture clearance, tropical climate materials, and BCA/HDB floor hacking regulations for resident flats.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

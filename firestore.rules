@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net: Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Standard Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Concept Entity Validation Helper (Anti-Update-Gap)
+    function isValidConcept(data) {
+      return (
+        // Strict Keys & Size Enforcement to avoid Ghost Fields
+        data.keys().hasAll(['userId', 'title', 'createdAt', 'userInput', 'aiResponse']) &&
+        (data.keys().size() == 5 || (data.keys().size() == 6 && data.keys().hasAll(['conceptNotes']))) &&
+        
+        // Type and Size constraints (Denial of Wallet Protection)
+        data.userId is string &&
+        data.userId.size() <= 128 &&
+        data.title is string &&
+        data.title.size() >= 1 &&
+        data.title.size() <= 256 &&
+        data.userInput is map &&
+        data.aiResponse is map &&
+        (!data.keys().hasAll(['conceptNotes']) || (data.conceptNotes is string && data.conceptNotes.size() <= 5000))
+      );
+    }
+
+    // Match block for concepts collection
+    match /concepts/{conceptId} {
+      
+      // Get: Secure read only by matching ownership
+      allow get: if isVerifiedUser() && 
+                    isValidId(conceptId) && 
+                    existing().userId == request.auth.uid;
+
+      // List: Explicit Query Enforcer preventing client data scraping
+      allow list: if isVerifiedUser() && 
+                     resource.data.userId == request.auth.uid;
+
+      // Create: Match UID, enforce server timestamp, confirm schema
+      allow create: if isVerifiedUser() &&
+                       isValidId(conceptId) &&
+                       isValidConcept(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt == request.time;
+
+      // Update: Immutable parameters checkout & Action restrictions
+      allow update: if isVerifiedUser() &&
+                       isValidId(conceptId) &&
+                       isValidConcept(incoming()) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       // Restrict what elements can be updated
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'userInput', 'aiResponse', 'conceptNotes']);
+
+      // Delete: Owner-specific destruction
+      allow delete: if isVerifiedUser() &&
+                       isValidId(conceptId) &&
+                       existing().userId == request.auth.uid;
+    }
+  }
+}
